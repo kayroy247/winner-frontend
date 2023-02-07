@@ -39,7 +39,8 @@ function App() {
       setChainError(null);
     }
     console.log(winner);
-  });
+  }, [chainError, account]);
+
   const checkMetamask = async () => {
     if (isMetaMaskInstalled) {
       if (window.ethereum.chainId === '0x13881') {
