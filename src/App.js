@@ -22,8 +22,8 @@ import {
   getProvider,
   getSigner,
 } from './connection/metamask';
-import { formatEther, Contract, toBeHex } from 'ethers';
-import winner from './abi/winner.json';
+import { formatEther, Contract, WebSocketProvider } from 'ethers';
+import winnerABI from './abi/winner.json';
 
 function App() {
   const [account, setAccount] = useState('');
@@ -32,14 +32,45 @@ function App() {
   const [newWinner, setNewWinner] = useState('');
   const [chainError, setChainError] = useState(null);
   const toast = useToast();
+  const provider = getProvider();
+  const wprovider = new WebSocketProvider(window.ethereum);
+  const winContract = new Contract(
+    '0x7A3318244fe91291045c3A6fBB73A843b5473e5E',
+    winnerABI,
+    wprovider
+  );
 
   useEffect(() => {
     if (account) {
       getBalance(account);
       setChainError(null);
     }
-    console.log(winner);
   }, [chainError, account]);
+
+  useEffect(() => {
+    console.log('effect', { winContract });
+    winContract.on('WinnerSet', (name, event) => {
+      // The `event.log` has the entire EventLog
+      console.log({ name, event });
+    });
+
+    return () => {
+      winContract.removeAllListeners('WinnerSet');
+    };
+  }, [winContract]);
+
+  const setEvent = async () => {
+    const provider = getProvider().getSigner();
+    const winContract = new Contract(
+      '0x7A3318244fe91291045c3A6fBB73A843b5473e5E',
+      winnerABI,
+      provider
+    );
+    winContract.on('WinnerSet', event => {
+      // The `event.log` has the entire EventLog
+      console.log('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&the event happened');
+    });
+  };
 
   const checkMetamask = async () => {
     if (isMetaMaskInstalled) {
@@ -65,15 +96,11 @@ function App() {
   };
 
   const winnerContract = async () => {
-    const abi = [
-      'function getWinner() view external returns (string memory)',
-      'function setWinner(string) returns (string)',
-    ];
     const signer = await getSigner();
     // Create a contract
     const winnerContract = new Contract(
       '0x7A3318244fe91291045c3A6fBB73A843b5473e5E',
-      abi,
+      winnerABI,
       signer
     );
     return winnerContract;
